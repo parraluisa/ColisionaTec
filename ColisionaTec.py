@@ -8,8 +8,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Parámetros para la simulación
 total_time = 5.0
 dt = 0.1
-x1_initial = [0]
-x2_initial = [5]
 
 # Variables globales para almacenar datos de la simulación
 time_data = []
@@ -23,8 +21,11 @@ v1_data = []
 v2_data = []
 
 # Inicializa x1 y x2 como listas
-x1 = x1_initial.copy()
-x2 = x2_initial.copy()
+x1 = []
+x2 = []
+
+# Variables para almacenar las condiciones iniciales
+initial_conditions = {}
 
 # Función de cálculo de colisiones
 def calculate_collision(mass1, mass2, v1_initial, v2_initial, e):
@@ -154,8 +155,8 @@ def close_animation():
     clear_data()
     ani.event_source.stop()
     global x1, x2
-    x1 = x1_initial.copy()
-    x2 = x2_initial.copy()
+    x1 = initial_conditions['x1_initial'].copy()
+    x2 = initial_conditions['x2_initial'].copy()
     anim_window.destroy()
     root.deiconify()
 
@@ -180,46 +181,67 @@ def close_application():
 def reset_animation():
     global anim_window
     anim_window.destroy()
-    start_animation()
+    start_animation(use_initial_conditions=True)
 
 # Función para iniciar la animación
-def start_animation():
+def start_animation(use_initial_conditions=False):
     clear_data()
-    global initial_momentum, initial_energy, ani, fig, ax, canvas, v1_current, v2_current
+    global initial_momentum, initial_energy, ani, fig, ax, canvas, v1_current, v2_current, initial_conditions, x1, x2
 
-    # Validar los valores de entrada
-    mass1_value = mass1_entry.get()
-    mass2_value = mass2_entry.get()
-    v1_value = v1_entry.get()
-    v2_value = v2_entry.get()
+    if use_initial_conditions:
+        mass1 = initial_conditions['mass1']
+        mass2 = initial_conditions['mass2']
+        v1_initial = initial_conditions['v1_initial']
+        v2_initial = initial_conditions['v2_initial']
+        e = initial_conditions['e']
+        x1 = initial_conditions['x1_initial'].copy()
+        x2 = initial_conditions['x2_initial'].copy()
+    else:
+        # Validar los valores de entrada
+        mass1_value = mass1_entry.get()
+        mass2_value = mass2_entry.get()
+        v1_value = v1_entry.get()
+        v2_value = v2_entry.get()
 
-    if not mass1_value or not mass2_value or not v1_value or not v2_value:
-        messagebox.showinfo("Alerta", "Debe ingresar todos los valores requeridos.")
-        return
+        if not mass1_value or not mass2_value or not v1_value or not v2_value:
+            messagebox.showinfo("Alerta", "Debe ingresar todos los valores requeridos.")
+            return
 
-    try:
-        mass1 = float(mass1_value)
-        mass2 = float(mass2_value)
-        v1_initial = float(v1_value)
-        v2_initial = float(v2_value)
-    except ValueError:
-        messagebox.showinfo("Alerta", "Los valores de masa y velocidad deben ser números válidos.")
-        return
+        try:
+            mass1 = float(mass1_value)
+            mass2 = float(mass2_value)
+            v1_initial = float(v1_value)
+            v2_initial = float(v2_value)
+        except ValueError:
+            messagebox.showinfo("Alerta", "Los valores de masa y velocidad deben ser números válidos.")
+            return
 
-    if mass1 <= 0 or mass2 <= 0:
-        messagebox.showinfo("Alerta", "Las masas deben ser mayores a 0.")
-        return
-    if v1_initial == v2_initial and v1_initial == 0:
-        messagebox.showinfo("Alerta", "Al menos una de las velocidades iniciales debe ser diferente de 0.")
-        return
+        if mass1 <= 0 or mass2 <= 0:
+            messagebox.showinfo("Alerta", "Las masas deben ser mayores a 0.")
+            return
+        if v1_initial == v2_initial and v1_initial == 0:
+            messagebox.showinfo("Alerta", "Al menos una de las velocidades iniciales debe ser diferente de 0.")
+            return
 
-    e = 1.0 if elastic_var.get() else 0.0
+        e = 1.0 if elastic_var.get() else 0.0
+        x1 = [-5]
+        x2 = [5]
+
+        # Guardar las condiciones iniciales
+        initial_conditions = {
+            'mass1': mass1,
+            'mass2': mass2,
+            'v1_initial': v1_initial,
+            'v2_initial': v2_initial,
+            'e': e,
+            'x1_initial': x1.copy(),
+            'x2_initial': x2.copy()
+        }
 
     # Calcular las velocidades finales
     v1_final, v2_final = calculate_collision(mass1, mass2, v1_initial, v2_initial, e)
 
     # Conservación del impulso y energía inicial
-    global initial_momentum, initial_energy
     initial_momentum = mass1 * v1_initial + mass2 * v2_initial
     initial_energy = 0.5 * mass1 * v1_initial ** 2 + 0.5 * mass2 * v2_initial ** 2
 
