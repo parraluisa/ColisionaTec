@@ -7,7 +7,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Parámetros para la simulación
 total_time = 5.0
-dt = 1 / 30
+dt = 0.1
+fps = 30  # Frames por segundo
 
 # Variables globales para almacenar datos de la simulación
 time_data = []
@@ -149,6 +150,41 @@ def show_data():
     data_window.update()
     canvas.config(scrollregion=canvas.bbox("all"))
 
+# Función para mostrar las gráficas de posición y velocidad
+def show_graphs():
+    global time_data, x1_data, x2_data, v1_data, v2_data
+
+    # Crear una nueva ventana para las gráficas
+    graph_window = tk.Toplevel(root)
+    graph_window.title("Gráficas")
+    graph_window.geometry("800x600")
+
+    # Crear figura de matplotlib
+    fig, axs = plt.subplots(2, 1, figsize=(8, 10))
+
+    # Gráfica de posición vs tiempo
+    axs[0].plot(time_data, x1_data, label='Posición Masa 1')
+    axs[0].plot(time_data, x2_data, label='Posición Masa 2')
+    axs[0].set_xlabel('Tiempo (s)')
+    axs[0].set_ylabel('Posición (m)')
+    axs[0].legend()
+    axs[0].grid(True)
+
+    # Gráfica de velocidad vs tiempo
+    axs[1].plot(time_data, v1_data, label='Velocidad Masa 1')
+    axs[1].plot(time_data, v2_data, label='Velocidad Masa 2')
+    axs[1].set_xlabel('Tiempo (s)')
+    axs[1].set_ylabel('Velocidad (m/s)')
+    axs[1].legend()
+    axs[1].grid(True)
+
+    plt.tight_layout()
+
+    # Convertir la figura de matplotlib en un widget de Tkinter
+    canvas_fig = FigureCanvasTkAgg(fig, master=graph_window)
+    canvas_fig.draw()
+    canvas_fig.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
 # Función para cerrar la animación
 def close_animation():
     stop_animation()
@@ -224,7 +260,7 @@ def start_animation(use_initial_conditions=False):
             return
 
         e = 1.0 if elastic_var.get() else 0.0
-        x1 = [-5]
+        x1 = [0]
         x2 = [5]
 
         # Guardar las condiciones iniciales
@@ -276,8 +312,10 @@ def start_animation(use_initial_conditions=False):
     v1_current = v1_initial
     v2_current = v2_initial
 
+    interval = 1000 / fps  # Calcular el intervalo en milisegundos basado en los FPS
+
     ani = animation.FuncAnimation(fig, update, fargs=(mass1, mass2, v1_initial, v2_initial, v1_final, v2_final, e, radius1, radius2),
-                                  frames=int(total_time / dt), init_func=init, blit=True)
+                                  frames=int(total_time / dt), interval=interval, init_func=init, blit=True)
 
     # Crear canvas para matplotlib
     canvas = FigureCanvasTkAgg(fig, master=anim_window)
