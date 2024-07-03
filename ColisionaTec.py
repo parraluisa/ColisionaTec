@@ -5,16 +5,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-#TODO: Revisar la animación de colisiones tanto elasticas como inelasticas, especialmente en el choque
-#TODO: Revisar que las colisiones perfectamente inelasticas se comporten correctamente (Solo vamos a aplicar totalmente inelasticas)
-#TODO: Para la animación agrandar o disminuir el tamaño de las masas dependiendo de su masa (masa1 y masa2)
-#TODO: Mostrar las ecuaciones de energías y momentos
-#TODO: Mostrar las energías y momentos iniciales y finales
-#TODO: Mejorar el flujo de la aplicación para asegurarse de que el botón de cerrar aplicación funcione en todos los casos
-
 # Parámetros para la simulación
 total_time = 5.0
-dt = 0.01
+dt = 0.1
+x1_initial = [0]
+x2_initial = [5]
 
 # Variables globales para almacenar datos de la simulación
 time_data = []
@@ -24,8 +19,12 @@ initial_energy_data = []
 final_energy_data = []
 x1_data = []
 x2_data = []
-v1_data = []  
-v2_data = []  
+v1_data = []
+v2_data = []
+
+# Inicializa x1 y x2 como listas
+x1 = x1_initial.copy()
+x2 = x2_initial.copy()
 
 # Función de cálculo de colisiones
 def calculate_collision(mass1, mass2, v1_initial, v2_initial, e):
@@ -40,28 +39,32 @@ def init():
     time_text.set_text('')
     momentum_text.set_text('')
     energy_text.set_text('')
-    return object1, object2, time_text, momentum_text, energy_text
+    eq_momentum_text.set_text('')
+    eq_energy_text.set_text('')
+    return object1, object2, time_text, momentum_text, energy_text, eq_momentum_text, eq_energy_text
 
 # Función de actualización para la animación
-def update(frame, mass1, mass2, v1_initial, v2_initial, v1_final, v2_final):
-    global x1, x2
+def update(frame, mass1, mass2, v1_initial, v2_initial, v1_final, v2_final, e, radius1, radius2):
+    global x1, x2, v1_current, v2_current
     t = frame * dt
-    if t < 1:
-        x1 = v1_initial * t
-        x2 = 5 + v2_initial * t
-        if x1 >= x2:
-            v1_initial, v2_initial = v1_final, v2_final
-    else:
-        x1 += v1_initial * dt
-        x2 += v2_initial * dt
 
-    object1.set_data(x1, 0)
-    object2.set_data(x2, 0)
+    if e == 1.0:  # Colisión elástica
+        if x1[0] + radius1 >= x2[0] - radius2:  # Colisión
+            v1_current, v2_current = v1_final, v2_final
+    else:  # Colisión inelástica
+        if x1[0] + radius1 >= x2[0] - radius2:  # Colisión
+            v1_current = v2_current = (mass1 * v1_initial + mass2 * v2_initial) / (mass1 + mass2)
+
+    x1[0] += v1_current * dt
+    x2[0] += v2_current * dt
+
+    object1.set_data(x1, [0])
+    object2.set_data(x2, [0])
     time_text.set_text('Tiempo = %.1f s' % t)
 
     # Calcular y actualizar impulso, momento y energía
-    current_momentum = mass1 * v1_initial + mass2 * v2_initial
-    current_energy = 0.5 * mass1 * v1_initial**2 + 0.5 * mass2 * v2_initial**2
+    current_momentum = mass1 * v1_current + mass2 * v2_current
+    current_energy = 0.5 * mass1 * v1_current ** 2 + 0.5 * mass2 * v2_current ** 2
     momentum_text.set_text(f'Momentum: {initial_momentum:.2f} -> {current_momentum:.2f}')
     energy_text.set_text(f'Energía: {initial_energy:.2f} -> {current_energy:.2f}')
 
@@ -71,20 +74,12 @@ def update(frame, mass1, mass2, v1_initial, v2_initial, v1_final, v2_final):
     final_momentum_data.append(current_momentum)
     initial_energy_data.append(initial_energy)
     final_energy_data.append(current_energy)
-    x1_data.append(x1)
-    x2_data.append(x2)
-
-    # Calcular velocidades actuales
-    v1_current = v1_initial
-    v2_current = v2_initial
-    if t >= 1:
-        v1_current = v1_final
-        v2_current = v2_final
-
+    x1_data.append(x1[0])
+    x2_data.append(x2[0])
     v1_data.append(v1_current)
     v2_data.append(v2_current)
 
-    return object1, object2, time_text, momentum_text, energy_text
+    return object1, object2, time_text, momentum_text, energy_text, eq_momentum_text, eq_energy_text
 
 # Función para detener la animación
 def stop_animation():
@@ -119,7 +114,8 @@ def show_data():
     canvas.create_window((0, 0), window=data_frame, anchor="nw")
 
     # Crear una tabla para mostrar los datos
-    data_table = ttk.Treeview(data_frame, columns=('time', 'momentum', 'energy', 'x1', 'x2', 'v1', 'v2'), show='headings', height=25)
+    data_table = ttk.Treeview(data_frame, columns=('time', 'momentum', 'energy', 'x1', 'x2', 'v1', 'v2'),
+                              show='headings', height=25)
     data_table.heading('time', text='Tiempo (s)')
     data_table.heading('momentum', text='Momentum')
     data_table.heading('energy', text='Energía')
@@ -138,7 +134,9 @@ def show_data():
     data_table.column('v2', width=100)
 
     for i in range(len(time_data)):
-        data_table.insert('', 'end', values=(time_data[i], initial_momentum_data[i], final_momentum_data[i], initial_energy_data[i], final_energy_data[i], x1_data[i], x2_data[i], v1_data[i], v2_data[i]))
+        data_table.insert('', 'end', values=(
+        time_data[i], initial_momentum_data[i], final_momentum_data[i], initial_energy_data[i], final_energy_data[i],
+        x1_data[i], x2_data[i], v1_data[i], v2_data[i]))
 
     data_table.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -152,17 +150,16 @@ def show_data():
 
 # Función para cerrar la animación
 def close_animation():
-    #Esta función detiene la animación, borra los datos y cierra la ventana para volver a la pantalla principal
     stop_animation()
     clear_data()
     ani.event_source.stop()
-    #eliminar la ventana de la animación
+    global x1, x2
+    x1 = x1_initial.copy()
+    x2 = x2_initial.copy()
     anim_window.destroy()
-    #volver a la pantalla principal
     root.deiconify()
-    
-    
-#Fucnión para borrar los datos
+
+# Función para borrar los datos
 def clear_data():
     time_data.clear()
     initial_momentum_data.clear()
@@ -174,13 +171,21 @@ def clear_data():
     v1_data.clear()
     v2_data.clear()
 
+# Función para cerrar correctamente la aplicación
+def close_application():
+    clear_data()
+    root.destroy()
+
+# Función para reiniciar la animación
+def reset_animation():
+    global anim_window
+    anim_window.destroy()
+    start_animation()
+
 # Función para iniciar la animación
 def start_animation():
-
-    #Borrar todo en caso de que haya algo
     clear_data()
-
-    global initial_momentum, initial_energy, ani, fig, ax, canvas
+    global initial_momentum, initial_energy, ani, fig, ax, canvas, v1_current, v2_current
 
     # Validar los valores de entrada
     mass1_value = mass1_entry.get()
@@ -208,7 +213,7 @@ def start_animation():
         messagebox.showinfo("Alerta", "Al menos una de las velocidades iniciales debe ser diferente de 0.")
         return
 
-    e = 1.0 if elastic_var.get() else 0.5
+    e = 1.0 if elastic_var.get() else 0.0
 
     # Calcular las velocidades finales
     v1_final, v2_final = calculate_collision(mass1, mass2, v1_initial, v2_initial, e)
@@ -216,7 +221,11 @@ def start_animation():
     # Conservación del impulso y energía inicial
     global initial_momentum, initial_energy
     initial_momentum = mass1 * v1_initial + mass2 * v2_initial
-    initial_energy = 0.5 * mass1 * v1_initial**2 + 0.5 * mass2 * v2_initial**2
+    initial_energy = 0.5 * mass1 * v1_initial ** 2 + 0.5 * mass2 * v2_initial ** 2
+
+    # Calcular los radios de las masas
+    radius1 = 0.5 * np.sqrt(mass1)
+    radius2 = 0.5 * np.sqrt(mass2)
 
     # Crear ventana de animación
     global anim_window
@@ -230,17 +239,24 @@ def start_animation():
     ax.set_ylim(-1, 1)
     ax.set_xlabel('Posición')
 
-    global object1, object2, time_text, momentum_text, energy_text
-    object1, = ax.plot([], [], 'bo', ms=20)
-    object2, = ax.plot([], [], 'ro', ms=20)
+    global object1, object2, time_text, momentum_text, energy_text, eq_momentum_text, eq_energy_text
+    ms1 = 20 * np.sqrt(mass1)
+    ms2 = 20 * np.sqrt(mass2)
+    object1, = ax.plot([], [], 'bo', ms=ms1)
+    object2, = ax.plot([], [], 'ro', ms=ms2)
     time_template = 'Tiempo = %.1f s'
     time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
     momentum_text = ax.text(0.05, 0.8, '', transform=ax.transAxes)
     energy_text = ax.text(0.05, 0.7, '', transform=ax.transAxes)
+    eq_momentum_text = ax.text(0.05, 0.6, 'Ecuación de Momento', transform=ax.transAxes)
+    eq_energy_text = ax.text(0.05, 0.5, 'Ecuación de Energía', transform=ax.transAxes)
 
-    ani = animation.FuncAnimation(fig, update, fargs=(mass1, mass2, v1_initial, v2_initial, v1_final, v2_final),
+    v1_current = v1_initial
+    v2_current = v2_initial
+
+    ani = animation.FuncAnimation(fig, update, fargs=(mass1, mass2, v1_initial, v2_initial, v1_final, v2_final, e, radius1, radius2),
                                   frames=int(total_time / dt), init_func=init, blit=True)
-    
+
     # Crear canvas para matplotlib
     canvas = FigureCanvasTkAgg(fig, master=anim_window)
     canvas.draw()
@@ -258,82 +274,17 @@ def start_animation():
     btn_continue_animation = ttk.Button(control_frame, text="Continuar animación", command=continue_animation)
     btn_continue_animation.pack(side=tk.LEFT, padx=5, pady=5)
 
-    # Botón para ver gráficas
-    btn_show_graphs = ttk.Button(control_frame, text="Ver gráficas", command=show_graphs)
-    btn_show_graphs.pack(side=tk.LEFT, padx=5, pady=5)
-
     # Botón para ver datos
     btn_show_data = ttk.Button(control_frame, text="Ver datos", command=show_data)
     btn_show_data.pack(side=tk.LEFT, padx=5, pady=5)
 
+    # Botón para reiniciar la animación
+    btn_reset_animation = ttk.Button(control_frame, text="Reiniciar animación", command=reset_animation)
+    btn_reset_animation.pack(side=tk.LEFT, padx=5, pady=5)
+
     # Botón para cerrar la animación
     btn_close_animation = ttk.Button(control_frame, text="Cerrar animación", command=close_animation)
     btn_close_animation.pack(side=tk.LEFT, padx=5, pady=5)
-
-# Función para mostrar las gráficas después de la animación
-def show_graphs():
-    global time_data, initial_momentum_data, final_momentum_data, initial_energy_data, final_energy_data, x1_data, x2_data, v1_data, v2_data
-
-    # Crear una nueva ventana para las gráficas
-    graph_window = tk.Toplevel(root)
-    graph_window.title("Gráficas")
-    graph_window.geometry("825x500")
-
-    # Crear un marco de desplazamiento
-    scroll_frame = ttk.Frame(graph_window)
-    scroll_frame.pack(fill=tk.BOTH, expand=True)
-
-    # Añadir un lienzo para las gráficas
-    canvas = tk.Canvas(scroll_frame)
-    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-    # Añadir una barra de desplazamiento
-    scrollbar = ttk.Scrollbar(scroll_frame, orient=tk.VERTICAL, command=canvas.yview)
-    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-    canvas.configure(yscrollcommand=scrollbar.set)
-
-    # Crear un marco interno para el contenido del lienzo
-    graph_frame = ttk.Frame(canvas)
-    canvas.create_window((0, 0), window=graph_frame, anchor="nw")
-
-    # Mostrar gráficas
-    fig, axs = plt.subplots(4, 1, figsize=(8, 10))
-    axs[0].plot(time_data, initial_momentum_data, 'y-', marker='o', label='Momentum Inicial')
-    axs[0].plot(time_data, final_momentum_data, 'm-', marker='x', label='Momentum Final')
-    axs[0].set_xlabel('Tiempo (s)')
-    axs[0].set_ylabel('Momentum (kg m/s)')
-    axs[0].legend()
-
-    axs[1].plot(time_data, initial_energy_data, 'g-', marker='s', label='Energía Inicial')
-    axs[1].plot(time_data, final_energy_data, 'c-', marker='D', label='Energía Final')
-    axs[1].set_xlabel('Tiempo (s)')
-    axs[1].set_ylabel('Energía (J)')
-    axs[1].legend()
-
-    axs[2].plot(time_data, x1_data, 'g-', marker='^', label='Posición Masa 1')
-    axs[2].plot(time_data, x2_data, 'm-', marker='v', label='Posición Masa 2')
-    axs[2].set_xlabel('Tiempo (s)')
-    axs[2].set_ylabel('Posición (m)')
-    axs[2].legend()
-
-    axs[3].plot(time_data, v1_data, 'y-', marker='p', label='Velocidad Masa 1')
-    axs[3].plot(time_data, v2_data, 'c-', marker='*', label='Velocidad Masa 2')
-    axs[3].set_xlabel('Tiempo (s)')
-    axs[3].set_ylabel('Velocidad (m/s)')
-    axs[3].legend()
-
-    plt.tight_layout()
-
-    # Convertir la figura de Matplotlib en un widget de Tkinter
-    canvas_fig = FigureCanvasTkAgg(fig, master=graph_frame)
-    canvas_fig.draw()
-    canvas_fig.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-    # Actualizar el lienzo con el tamaño del contenido
-    graph_frame.update_idletasks()
-    canvas.config(scrollregion=canvas.bbox("all"))
-
-
 
 # Crear la interfaz gráfica con tkinter
 root = tk.Tk()
@@ -368,6 +319,6 @@ ttk.Checkbutton(control_frame, text="Colisión Elástica", variable=elastic_var)
 ttk.Button(control_frame, text="Iniciar animación", command=start_animation).grid(row=5, columnspan=2)
 
 # Botón para cerrar la aplicación
-ttk.Button(control_frame, text="Cerrar aplicación", command=root.destroy).grid(row=6, columnspan=2)
+ttk.Button(control_frame, text="Cerrar aplicación", command=close_application).grid(row=6, columnspan=2)
 
 root.mainloop()
