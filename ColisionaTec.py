@@ -7,7 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Parámetros para la simulación
 total_time = 5.0
-dt = 0.1
+dt = 1 / 30
 
 # Variables globales para almacenar datos de la simulación
 time_data = []
