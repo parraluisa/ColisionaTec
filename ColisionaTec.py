@@ -6,9 +6,10 @@ from tkinter import ttk, messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Parámetros para la simulación
-total_time = 5.0
+total_time = 10.0
 dt = 0.1
-fps = 30  # Frames por segundo
+x1_initial = [0]
+x2_initial = [5]
 
 # Variables globales para almacenar datos de la simulación
 time_data = []
@@ -22,11 +23,8 @@ v1_data = []
 v2_data = []
 
 # Inicializa x1 y x2 como listas
-x1 = []
-x2 = []
-
-# Variables para almacenar las condiciones iniciales
-initial_conditions = {}
+x1 = x1_initial.copy()
+x2 = x2_initial.copy()
 
 # Función de cálculo de colisiones
 def calculate_collision(mass1, mass2, v1_initial, v2_initial, e):
@@ -116,11 +114,13 @@ def show_data():
     canvas.create_window((0, 0), window=data_frame, anchor="nw")
 
     # Crear una tabla para mostrar los datos
-    data_table = ttk.Treeview(data_frame, columns=('time', 'momentum', 'energy', 'x1', 'x2', 'v1', 'v2'),
+    data_table = ttk.Treeview(data_frame, columns=('time', 'initial_momentum', 'final_momentum', 'initial_energy', 'final_energy', 'x1', 'x2', 'v1', 'v2'),
                               show='headings', height=25)
     data_table.heading('time', text='Tiempo (s)')
-    data_table.heading('momentum', text='Momentum')
-    data_table.heading('energy', text='Energía')
+    data_table.heading('initial_momentum', text='Momentum Inicial')
+    data_table.heading('final_momentum', text='Momentum Final')
+    data_table.heading('initial_energy', text='Energía Inicial')
+    data_table.heading('final_energy', text='Energía Final')
     data_table.heading('x1', text='Posición Masa 1')
     data_table.heading('x2', text='Posición Masa 2')
     data_table.heading('v1', text='Velocidad Masa 1')
@@ -128,8 +128,10 @@ def show_data():
 
     # Ajustar el ancho de las columnas
     data_table.column('time', width=100)
-    data_table.column('momentum', width=100)
-    data_table.column('energy', width=100)
+    data_table.column('initial_momentum', width=100)
+    data_table.column('final_momentum', width=100)
+    data_table.column('initial_energy', width=100)
+    data_table.column('final_energy', width=100)
     data_table.column('x1', width=100)
     data_table.column('x2', width=100)
     data_table.column('v1', width=100)
@@ -137,8 +139,8 @@ def show_data():
 
     for i in range(len(time_data)):
         data_table.insert('', 'end', values=(
-        time_data[i], initial_momentum_data[i], final_momentum_data[i], initial_energy_data[i], final_energy_data[i],
-        x1_data[i], x2_data[i], v1_data[i], v2_data[i]))
+            time_data[i], initial_momentum_data[i], final_momentum_data[i], initial_energy_data[i], final_energy_data[i],
+            x1_data[i], x2_data[i], v1_data[i], v2_data[i]))
 
     data_table.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -150,40 +152,57 @@ def show_data():
     data_window.update()
     canvas.config(scrollregion=canvas.bbox("all"))
 
-# Función para mostrar las gráficas de posición y velocidad
+# Función para mostrar las gráficas después de la animación
 def show_graphs():
-    global time_data, x1_data, x2_data, v1_data, v2_data
+    global time_data, initial_momentum_data, final_momentum_data, initial_energy_data, final_energy_data, x1_data, x2_data, v1_data, v2_data
 
     # Crear una nueva ventana para las gráficas
     graph_window = tk.Toplevel(root)
     graph_window.title("Gráficas")
-    graph_window.geometry("800x600")
+    graph_window.geometry("825x500")
 
-    # Crear figura de matplotlib
+    # Crear un marco de desplazamiento
+    scroll_frame = ttk.Frame(graph_window)
+    scroll_frame.pack(fill=tk.BOTH, expand=True)
+
+    # Añadir un lienzo para las gráficas
+    canvas = tk.Canvas(scroll_frame)
+    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # Añadir una barra de desplazamiento
+    scrollbar = ttk.Scrollbar(scroll_frame, orient=tk.VERTICAL, command=canvas.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Crear un marco interno para el contenido del lienzo
+    graph_frame = ttk.Frame(canvas)
+    canvas.create_window((0, 0), window=graph_frame, anchor="nw")
+
+    # Mostrar gráficas
     fig, axs = plt.subplots(2, 1, figsize=(8, 10))
-
-    # Gráfica de posición vs tiempo
-    axs[0].plot(time_data, x1_data, label='Posición Masa 1')
-    axs[0].plot(time_data, x2_data, label='Posición Masa 2')
+    axs[0].plot(time_data, x1_data, 'g-', marker='^', label='Posición Masa 1')
+    axs[0].plot(time_data, x2_data, 'm-', marker='v', label='Posición Masa 2')
     axs[0].set_xlabel('Tiempo (s)')
     axs[0].set_ylabel('Posición (m)')
     axs[0].legend()
-    axs[0].grid(True)
 
-    # Gráfica de velocidad vs tiempo
-    axs[1].plot(time_data, v1_data, label='Velocidad Masa 1')
-    axs[1].plot(time_data, v2_data, label='Velocidad Masa 2')
+    axs[1].plot(time_data, v1_data, 'y-', marker='p', label='Velocidad Masa 1')
+    axs[1].plot(time_data, v2_data, 'c-', marker='*', label='Velocidad Masa 2')
     axs[1].set_xlabel('Tiempo (s)')
     axs[1].set_ylabel('Velocidad (m/s)')
     axs[1].legend()
-    axs[1].grid(True)
 
     plt.tight_layout()
 
-    # Convertir la figura de matplotlib en un widget de Tkinter
-    canvas_fig = FigureCanvasTkAgg(fig, master=graph_window)
+    # Convertir la figura de Matplotlib en un widget de Tkinter
+    canvas_fig = FigureCanvasTkAgg(fig, master=graph_frame)
     canvas_fig.draw()
     canvas_fig.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    # Actualizar el lienzo con el tamaño del contenido
+    graph_frame.update_idletasks()
+    canvas.config(scrollregion=canvas.bbox("all"))
+
 
 # Función para cerrar la animación
 def close_animation():
@@ -191,8 +210,8 @@ def close_animation():
     clear_data()
     ani.event_source.stop()
     global x1, x2
-    x1 = initial_conditions['x1_initial'].copy()
-    x2 = initial_conditions['x2_initial'].copy()
+    x1 = x1_initial.copy()
+    x2 = x2_initial.copy()
     anim_window.destroy()
     root.deiconify()
 
@@ -217,67 +236,46 @@ def close_application():
 def reset_animation():
     global anim_window
     anim_window.destroy()
-    start_animation(use_initial_conditions=True)
+    start_animation()
 
 # Función para iniciar la animación
-def start_animation(use_initial_conditions=False):
+def start_animation():
     clear_data()
-    global initial_momentum, initial_energy, ani, fig, ax, canvas, v1_current, v2_current, initial_conditions, x1, x2
+    global initial_momentum, initial_energy, ani, fig, ax, canvas, v1_current, v2_current
 
-    if use_initial_conditions:
-        mass1 = initial_conditions['mass1']
-        mass2 = initial_conditions['mass2']
-        v1_initial = initial_conditions['v1_initial']
-        v2_initial = initial_conditions['v2_initial']
-        e = initial_conditions['e']
-        x1 = initial_conditions['x1_initial'].copy()
-        x2 = initial_conditions['x2_initial'].copy()
-    else:
-        # Validar los valores de entrada
-        mass1_value = mass1_entry.get()
-        mass2_value = mass2_entry.get()
-        v1_value = v1_entry.get()
-        v2_value = v2_entry.get()
+    # Validar los valores de entrada
+    mass1_value = mass1_entry.get()
+    mass2_value = mass2_entry.get()
+    v1_value = v1_entry.get()
+    v2_value = v2_entry.get()
 
-        if not mass1_value or not mass2_value or not v1_value or not v2_value:
-            messagebox.showinfo("Alerta", "Debe ingresar todos los valores requeridos.")
-            return
+    if not mass1_value or not mass2_value or not v1_value or not v2_value:
+        messagebox.showinfo("Alerta", "Debe ingresar todos los valores requeridos.")
+        return
 
-        try:
-            mass1 = float(mass1_value)
-            mass2 = float(mass2_value)
-            v1_initial = float(v1_value)
-            v2_initial = float(v2_value)
-        except ValueError:
-            messagebox.showinfo("Alerta", "Los valores de masa y velocidad deben ser números válidos.")
-            return
+    try:
+        mass1 = float(mass1_value)
+        mass2 = float(mass2_value)
+        v1_initial = float(v1_value)
+        v2_initial = float(v2_value)
+    except ValueError:
+        messagebox.showinfo("Alerta", "Los valores de masa y velocidad deben ser números válidos.")
+        return
 
-        if mass1 <= 0 or mass2 <= 0:
-            messagebox.showinfo("Alerta", "Las masas deben ser mayores a 0.")
-            return
-        if v1_initial == v2_initial and v1_initial == 0:
-            messagebox.showinfo("Alerta", "Al menos una de las velocidades iniciales debe ser diferente de 0.")
-            return
+    if mass1 <= 0 or mass2 <= 0:
+        messagebox.showinfo("Alerta", "Las masas deben ser mayores a 0.")
+        return
+    if v1_initial == v2_initial and v1_initial == 0:
+        messagebox.showinfo("Alerta", "Al menos una de las velocidades iniciales debe ser diferente de 0.")
+        return
 
-        e = 1.0 if elastic_var.get() else 0.0
-        x1 = [0]
-        x2 = [5]
-
-        # Guardar las condiciones iniciales
-        initial_conditions = {
-            'mass1': mass1,
-            'mass2': mass2,
-            'v1_initial': v1_initial,
-            'v2_initial': v2_initial,
-            'e': e,
-            'x1_initial': x1.copy(),
-            'x2_initial': x2.copy()
-        }
+    e = 1.0 if elastic_var.get() else 0.0
 
     # Calcular las velocidades finales
     v1_final, v2_final = calculate_collision(mass1, mass2, v1_initial, v2_initial, e)
 
     # Conservación del impulso y energía inicial
+    global initial_momentum, initial_energy
     initial_momentum = mass1 * v1_initial + mass2 * v2_initial
     initial_energy = 0.5 * mass1 * v1_initial ** 2 + 0.5 * mass2 * v2_initial ** 2
 
@@ -312,10 +310,8 @@ def start_animation(use_initial_conditions=False):
     v1_current = v1_initial
     v2_current = v2_initial
 
-    interval = 1000 / fps  # Calcular el intervalo en milisegundos basado en los FPS
-
     ani = animation.FuncAnimation(fig, update, fargs=(mass1, mass2, v1_initial, v2_initial, v1_final, v2_final, e, radius1, radius2),
-                                  frames=int(total_time / dt), interval=interval, init_func=init, blit=True)
+                                  frames=int(total_time / dt), init_func=init, blit=True)
 
     # Crear canvas para matplotlib
     canvas = FigureCanvasTkAgg(fig, master=anim_window)
@@ -326,6 +322,10 @@ def start_animation(use_initial_conditions=False):
     control_frame = ttk.Frame(anim_window)
     control_frame.pack(fill=tk.BOTH, expand=True)
 
+    # Botón para reiniciar la animación
+    btn_reset_animation = ttk.Button(control_frame, text="Reiniciar animación", command=reset_animation)
+    btn_reset_animation.pack(side=tk.LEFT, padx=5, pady=5)
+
     # Botón para detener la animación
     btn_stop_animation = ttk.Button(control_frame, text="Detener animación", command=stop_animation)
     btn_stop_animation.pack(side=tk.LEFT, padx=5, pady=5)
@@ -334,13 +334,15 @@ def start_animation(use_initial_conditions=False):
     btn_continue_animation = ttk.Button(control_frame, text="Continuar animación", command=continue_animation)
     btn_continue_animation.pack(side=tk.LEFT, padx=5, pady=5)
 
+    # Botón para ver gráficas
+    btn_show_graphs = ttk.Button(control_frame, text="Ver gráficas", command=show_graphs)
+    btn_show_graphs.pack(side=tk.LEFT, padx=5, pady=5)
+
     # Botón para ver datos
     btn_show_data = ttk.Button(control_frame, text="Ver datos", command=show_data)
     btn_show_data.pack(side=tk.LEFT, padx=5, pady=5)
 
-    # Botón para reiniciar la animación
-    btn_reset_animation = ttk.Button(control_frame, text="Reiniciar animación", command=reset_animation)
-    btn_reset_animation.pack(side=tk.LEFT, padx=5, pady=5)
+    
 
     # Botón para cerrar la animación
     btn_close_animation = ttk.Button(control_frame, text="Cerrar animación", command=close_animation)
