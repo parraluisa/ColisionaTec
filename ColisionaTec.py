@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Parámetros para la simulación
-total_time = 10
+
 fps = 60
 dt = 1 / fps
 
@@ -90,7 +90,7 @@ def update(
 
     object1.set_data(x1, [0])
     object2.set_data(x2, [0])
-    time_text.set_text("Tiempo = %d s" % int(t))
+    time_text.set_text("Tiempo = %.3f s" % t)
 
     # Calcular y actualizar impulso, momento y energía
     current_momentum = mass1 * v1_current + mass2 * v2_current
@@ -137,7 +137,7 @@ def show_data():
     # Crear una nueva ventana para los datos
     data_window = tk.Toplevel(root)
     data_window.title("Datos de la simulación")
-    data_window.geometry("900x300")
+    data_window.geometry("1400x300")
 
     # Crear un marco de desplazamiento
     scroll_frame = ttk.Frame(data_window)
@@ -172,7 +172,7 @@ def show_data():
     data_table.heading("v2", text="Velocidad Masa 2 (m/s)")
 
     # Ajustar el ancho de las columnas
-    data_table.column("time", width=100)
+    data_table.column("time", width=50)
     data_table.column("momentum1", width=150)
     data_table.column("momentum2", width=150)
     data_table.column("total_momentum", width=150)
@@ -191,15 +191,15 @@ def show_data():
             "",
             "end",
             values=(
-                time_data[i],
-                momentum1,
-                momentum2,
-                total_momentum,
-                total_energy,
-                x1_data[i],
-                x2_data[i],
-                v1_data[i],
-                v2_data[i],
+                f"{time_data[i]:.3f}",  # Formatear el tiempo con tres decimales
+                f"{momentum1:.2f}",
+                f"{momentum2:.2f}",
+                f"{total_momentum:.2f}",
+                f"{total_energy:.2f}",
+                f"{x1_data[i]:.2f}",
+                f"{x2_data[i]:.2f}",
+                f"{v1_data[i]:.2f}",
+                f"{v2_data[i]:.2f}",
             ),
         )
 
@@ -357,6 +357,9 @@ def start_animation(use_initial_conditions=False):
                 "Al menos una de las velocidades iniciales debe ser diferente de 0.",
             )
             return
+        if mass1 >= 10 or mass2 >= 10:
+            messagebox.showinfo("Alerta", "Las masas deben ser menores a 10.")
+            return
 
         e = 1.0 if elastic_var.get() else 0.0
         x1 = [-5]
@@ -388,7 +391,7 @@ def start_animation(use_initial_conditions=False):
     global anim_window
     anim_window = tk.Toplevel(root)
     anim_window.title("Animación de colisión")
-    anim_window.geometry("800x600")
+    anim_window.geometry("700x600")
 
     # Crear figura de matplotlib
     fig, ax = plt.subplots(figsize=(5, 3))
@@ -401,7 +404,6 @@ def start_animation(use_initial_conditions=False):
     ms2 = 20 * np.sqrt(mass2)
     (object1,) = ax.plot([], [], "bo", ms=ms1)
     (object2,) = ax.plot([], [], "ro", ms=ms2)
-    time_template = "Tiempo = %.1f s"
     time_text = ax.text(0.05, 0.9, "", transform=ax.transAxes)
     momentum_text = ax.text(0.05, 0.8, "", transform=ax.transAxes)
     energy_text = ax.text(0.05, 0.7, "", transform=ax.transAxes)
@@ -427,7 +429,7 @@ def start_animation(use_initial_conditions=False):
             radius1,
             radius2,
         ),
-        frames=int(total_time / dt),
+        frames=int(1000 / dt),
         interval=interval,
         init_func=init,
         blit=True,
@@ -480,41 +482,59 @@ def start_animation(use_initial_conditions=False):
 # Crear la interfaz gráfica con tkinter
 root = tk.Tk()
 root.title("Simulación de colisión")
-root.geometry("300x200")
+root.geometry("400x300")
+root.resizable(False, False)
 
 # Crear un marco para los controles
-control_frame = ttk.Frame(root)
+control_frame = ttk.Frame(root, padding="10 10 10 10")
 control_frame.pack(fill=tk.BOTH, expand=True)
 
-# Etiquetas y campos de entrada
-ttk.Label(control_frame, text="Masa 1 (kg):").grid(row=0, column=0)
+# Configurar el grid del marco para centrar todos los elementos
+control_frame.columnconfigure(0, weight=1)
+control_frame.columnconfigure(1, weight=1)
+
+# Etiquetas y campos de entrada con espaciado
+ttk.Label(control_frame, text="Masa 1 (kg):").grid(
+    row=0, column=0, sticky=tk.E, padx=5, pady=5
+)
 mass1_entry = ttk.Entry(control_frame)
-mass1_entry.grid(row=0, column=1)
+mass1_entry.grid(row=0, column=1, padx=5, pady=5)
 
-ttk.Label(control_frame, text="Masa 2 (kg):").grid(row=1, column=0)
+ttk.Label(control_frame, text="Masa 2 (kg):").grid(
+    row=1, column=0, sticky=tk.E, padx=5, pady=5
+)
 mass2_entry = ttk.Entry(control_frame)
-mass2_entry.grid(row=1, column=1)
+mass2_entry.grid(row=1, column=1, padx=5, pady=5)
 
-ttk.Label(control_frame, text="Velocidad 1 (m/s):").grid(row=2, column=0)
+ttk.Label(control_frame, text="Velocidad 1 (m/s):").grid(
+    row=2, column=0, sticky=tk.E, padx=5, pady=5
+)
 v1_entry = ttk.Entry(control_frame)
-v1_entry.grid(row=2, column=1)
+v1_entry.grid(row=2, column=1, padx=5, pady=5)
 
-ttk.Label(control_frame, text="Velocidad 2 (m/s):").grid(row=3, column=0)
+ttk.Label(control_frame, text="Velocidad 2 (m/s):").grid(
+    row=3, column=0, sticky=tk.E, padx=5, pady=5
+)
 v2_entry = ttk.Entry(control_frame)
-v2_entry.grid(row=3, column=1)
+v2_entry.grid(row=3, column=1, padx=5, pady=5)
 
 elastic_var = tk.BooleanVar(value=True)
 ttk.Checkbutton(control_frame, text="Colisión Elástica", variable=elastic_var).grid(
-    row=4, columnspan=2
+    row=4, column=0, columnspan=2, pady=10
 )
 
 # Botón para iniciar la animación
 ttk.Button(control_frame, text="Iniciar animación", command=start_animation).grid(
-    row=5, columnspan=2
+    row=5, column=0, columnspan=2, pady=10
 )
 
 # Botón para cerrar la aplicación
 ttk.Button(control_frame, text="Cerrar aplicación", command=close_application).grid(
-    row=6, columnspan=2
+    row=6, column=0, columnspan=2, pady=10
 )
+
+# Ajustar el grid para centrar verticalmente
+for child in control_frame.winfo_children():
+    child.grid_configure(padx=10, pady=5)
+
 root.mainloop()
