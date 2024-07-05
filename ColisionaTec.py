@@ -131,14 +131,8 @@ def continue_animation():
     ani.event_source.start()
 
 
-import tkinter as tk
-from tkinter import ttk
-
-# Suponiendo que las variables globales y root ya están definidas
-
-
 def show_data():
-    global time_data, x1_data, x2_data, v1_data, v2_data, initial_energy_data, final_energy_data, mass1, mass2
+    global time_data, x1_data, x2_data, v1_data, v2_data, mass1, mass2
 
     # Crear una nueva ventana para los datos
     data_window = tk.Toplevel(root)
@@ -149,29 +143,9 @@ def show_data():
     scroll_frame = ttk.Frame(data_window)
     scroll_frame.pack(fill=tk.BOTH, expand=True)
 
-    # Añadir un lienzo para los datos
-    canvas = tk.Canvas(scroll_frame)
-    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=6, pady=6)
-
-    # Añadir una barra de desplazamiento vertical
-    scrollbar_v = ttk.Scrollbar(scroll_frame, orient=tk.VERTICAL, command=canvas.yview)
-    scrollbar_v.pack(side=tk.RIGHT, fill=tk.Y)
-
-    # Añadir una barra de desplazamiento horizontal
-    scrollbar_h = ttk.Scrollbar(
-        scroll_frame, orient=tk.HORIZONTAL, command=canvas.xview
-    )
-    scrollbar_h.pack(side=tk.BOTTOM, fill=tk.X)
-
-    canvas.configure(yscrollcommand=scrollbar_v.set, xscrollcommand=scrollbar_h.set)
-
-    # Crear un marco interno para el contenido del lienzo
-    data_frame = ttk.Frame(canvas)
-    canvas.create_window((0, 0), window=data_frame, anchor="center")
-
-    # Crear una tabla para mostrar los datos
+    # Añadir una tabla para mostrar los datos
     data_table = ttk.Treeview(
-        data_frame,
+        scroll_frame,
         columns=(
             "time",
             "momentum1",
@@ -185,6 +159,8 @@ def show_data():
         ),
         show="headings",
     )
+
+    # Configurar las cabeceras de las columnas
     data_table.heading("time", text="Tiempo (s)")
     data_table.heading("momentum1", text="Momento Masa 1 (kg*m/s)")
     data_table.heading("momentum2", text="Momento Masa 2 (kg*m/s)")
@@ -227,15 +203,21 @@ def show_data():
             ),
         )
 
+    # Añadir una barra de desplazamiento vertical
+    scrollbar = ttk.Scrollbar(
+        scroll_frame, orient=tk.VERTICAL, command=data_table.yview
+    )
+    data_table.configure(yscrollcommand=scrollbar.set)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    # Añadir una barra de desplazamiento horizontal
+    scrollbar_h = ttk.Scrollbar(
+        scroll_frame, orient=tk.HORIZONTAL, command=data_table.xview
+    )
+    data_table.configure(xscrollcommand=scrollbar_h.set)
+    scrollbar_h.pack(side=tk.BOTTOM, fill=tk.X)
+
     data_table.pack(fill=tk.BOTH, expand=True)
-
-    # Actualizar el lienzo con el tamaño del contenido
-    data_frame.update_idletasks()
-    canvas.config(scrollregion=canvas.bbox("all"))
-
-    # Configurar la barra de desplazamiento para que funcione correctamente
-    data_window.update()
-    canvas.config(scrollregion=canvas.bbox("all"))
 
 
 # Función para mostrar las gráficas de posición y velocidad
@@ -535,5 +517,4 @@ ttk.Button(control_frame, text="Iniciar animación", command=start_animation).gr
 ttk.Button(control_frame, text="Cerrar aplicación", command=close_application).grid(
     row=6, columnspan=2
 )
-
 root.mainloop()
